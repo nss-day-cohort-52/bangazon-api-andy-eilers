@@ -89,6 +89,7 @@ class OrderView(ViewSet):
             order = Order.objects.get(
                 completed_on=None, user=request.auth.user)
             serializer = OrderSerializer(order)
+            order.save()
             return Response(serializer.data)
         except Order.DoesNotExist:
             return Response({
