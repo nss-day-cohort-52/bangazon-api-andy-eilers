@@ -8,7 +8,7 @@ from rest_framework.exceptions import ValidationError
 from drf_yasg.utils import swagger_auto_schema
 from drf_yasg import openapi
 from bangazon_api.helpers import STATE_NAMES
-from bangazon_api.models import Product, Store, Category, Order, Rating, Recommendation
+from bangazon_api.models import Product, Store, Category, Order, Rating, Recommendation, Like
 from bangazon_api.serializers import (
     ProductSerializer, CreateProductSerializer, MessageSerializer,
     AddProductRatingSerializer, AddRemoveRecommendationSerializer)
@@ -184,7 +184,7 @@ class ProductView(ViewSet):
         if name is not None:
             products = products.filter(name__icontains=name)
             
-        if location is not None: 
+        if location is not None:
             products = products.filter(location__contains=(location))
             
         if min_price is not None:
@@ -352,3 +352,26 @@ class ProductView(ViewSet):
             )
 
         return Response({'message': 'Rating added'}, status=status.HTTP_201_CREATED)
+    
+    @action(methods=['post'], detail=True)
+    def like(self, request, pk):
+        
+        try:
+            product = Product.objects.get(pk=pk)
+            user = request.auth.user
+            like = Like()
+            like.product_id = product.id
+            like.customer_id = user.id
+            product.save()
+            return Response({'message': "You like this product"}, status=status.HTTP_201_CREATED)
+        except Store.DoesNotExist as ex:
+            return Response({'message': ex.args[0]}, status=status.HTTP_404_NOT_FOUND)
+        
+    @action(methods=['delete'], detail=True)
+    def unlike(self, request, pk):
+        try:
+            like=Like.objects.get(store_id=pk, customer_id=request.auth.user.id)
+            like.delete()
+            return Response({'message': "You no longer like this product."}, status=status.HTTP_201_CREATED)
+        except (Store.DoesNotExist) as ex:
+            return Response({'message': ex.args[0]}, status=status.HTTP_404_NOT_FOUND)
